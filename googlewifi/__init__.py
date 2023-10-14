@@ -7,11 +7,13 @@ import grpc
 
 from ghome_foyer_api.api_pb2 import GetHomeGraphRequest
 from ghome_foyer_api.api_pb2_grpc import StructuresServiceStub
+from gpsoauth import perform_oauth
+
 
 GH_HEADERS = {"Content-Type": "application/json"}
 class GoogleWifi:
 
-  def __init__(self, refresh_token, session:aiohttp.ClientSession = None):
+  def __init__(self, username, refresh_token, android_id, session:aiohttp.ClientSession = None):
     """Get the API Bearer Token."""
 
     if session:
@@ -20,6 +22,8 @@ class GoogleWifi:
       self._session = aiohttp.ClientSession()
 
     self._refresh_token = refresh_token
+    self._username = username
+    self._android_id = android_id
     self._access_token = None
     self._api_token = None
     self._systems = None
@@ -137,9 +141,17 @@ class GoogleWifi:
       'Content-Type': 'application/x-www-form-urlencoded'
     }
     
-    response = await self.post_api(url, headers, payload)
+    response = await perform_oauth(
+        self._username, self._master_token, self._android_id,
+        app='com.google.android.apps.chromecast.app',
+        service='oauth2:https://www.google.com/accounts/OAuthLogin',
+        client_sig='24bb24c05e47e0aefa68a58a766179d9b613a600'
+    )
     
-    self._access_token = response.get("access_token", None)
+    return 
+
+
+    self._access_token = response.get('Auth', None)
 
   async def get_api_token(self):
     """Get the API Token."""
